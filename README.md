@@ -1,6 +1,6 @@
 ## Synopsis
 
-A simple python implementation of the classic Snakes (Active Contours) algorithm proposed by KASS, WITKIN and TERZOPOULOS in 1988.
+A python implementation of the classic Snakes (Active Contours) algorithm proposed by KASS, WITKIN and TERZOPOULOS in 1988.
 
 ## Code Example
 

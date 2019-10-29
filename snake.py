@@ -12,7 +12,7 @@ class Snake:
     MIN_DISTANCE_BETWEEN_POINTS = 5  # The minimum distance between two points to consider them overlaped
     MAX_DISTANCE_BETWEEN_POINTS = 50  # The maximum distance to insert another point into the spline
     SEARCH_KERNEL_SIZE = 7  # The size of the search kernel.
-    MAX_DISTANCE_POINT_LINESEG_TO_SNAP = 30  # TODO: change threshold
+    MAX_DISTANCE_POINT_LINESEG_TO_SNAP = 10  # TODO: change threshold
 
     # Members
     image = None  # The source image.
@@ -239,8 +239,7 @@ class Snake:
         # Penalize distance from each point to its nearest line
         vdists = [pnt2line2d(p, line[0][:2], line[0][2:])[0]
                   for line in self.lines]
-        _test = np.min(vdists) if np.min(vdists) < self.MAX_DISTANCE_POINT_LINESEG_TO_SNAP else 0
-        return _test
+        return np.min(vdists) if np.min(vdists) < self.MAX_DISTANCE_POINT_LINESEG_TO_SNAP else 0
 
     def remove_overlaping_points(self):
         """

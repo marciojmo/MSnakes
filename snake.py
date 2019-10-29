@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import math
+from lsd import LSD
+from utils import pnt2line2d
 
 
 class Snake:
@@ -10,6 +12,7 @@ class Snake:
     MIN_DISTANCE_BETWEEN_POINTS = 5  # The minimum distance between two points to consider them overlaped
     MAX_DISTANCE_BETWEEN_POINTS = 50  # The maximum distance to insert another point into the spline
     SEARCH_KERNEL_SIZE = 7  # The size of the search kernel.
+    MAX_DISTANCE_POINT_LINESEG_TO_SNAP = 30  # TODO: change threshold
 
     # Members
     image = None  # The source image.
@@ -30,6 +33,7 @@ class Snake:
     w_line = 0.5  # The weight to the line energy.
     w_edge = 0.5  # The weight to the edge energy.
     w_term = 0.5  # The weight to the term energy.
+    lines = None
 
     #################################
     # Constructor
@@ -82,6 +86,11 @@ class Snake:
                            for x in range(0, n)
                            ]
 
+        # Generate lsd
+        lsd = LSD(self.image)
+        lsd.detect_lines()
+        self.lines = lsd.lines
+
     def visualize(self):
         """
         Draws the current state of the snake over the image.
@@ -108,6 +117,7 @@ class Snake:
 
         return img
 
+    @staticmethod
     def dist(a, b):
         """
         Calculates the euclidean distance between two points
@@ -226,8 +236,11 @@ class Snake:
         :param next: The next point on the snake
         :return: The user configurable energy
         """
-        import random
-        return random.random()
+        # Penalize distance from each point to its nearest line
+        vdists = [pnt2line2d(p, line[0][:2], line[0][2:])[0]
+                  for line in self.lines]
+        _test = np.min(vdists) if np.min(vdists) < self.MAX_DISTANCE_POINT_LINESEG_TO_SNAP else 0
+        return _test
 
     def remove_overlaping_points(self):
         """

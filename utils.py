@@ -1,5 +1,6 @@
 import math
 
+
 # 3D Case
 def dot3d(v, w):
     x, y, z = v
@@ -110,3 +111,10 @@ def pnt2line2d(pnt, start, end):
     dist = distance2d(nearest, pnt_vec)
     nearest = add2d(nearest, start)
     return dist, nearest
+
+
+if __name__ == '__main__':
+    p = (100, 200)
+    lstart = (50, 100)
+    lend = (50, 101)
+    print(pnt2line2d(p, lstart, lend))

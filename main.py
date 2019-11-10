@@ -4,7 +4,7 @@ import sys
 import math
 
 # Process command line arguments
-file_to_load = "example.jpg"
+file_to_load = "images/example.jpg"
 if len(sys.argv) > 1:
     file_to_load = sys.argv[1]
 

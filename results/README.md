@@ -46,3 +46,12 @@ return np.min(vdists) if np.min(vdists) < self.MAX_DISTANCE_POINT_LINESEG_TO_SNA
 return np.min(vdists)
 ```
 
+## experiment_1.5
+
+```
+# Straightness of three points
+ang_prev = (p[0] - prev[0]) / (p[1] - prev[1] + self.EPSILON)
+ang_next = (next[0] - p[0]) / (next[1] - p[1] + self.EPSILON)
+return abs(ang_next - ang_prev) * 10000
+```
+

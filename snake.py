@@ -13,6 +13,7 @@ class Snake:
     MAX_DISTANCE_BETWEEN_POINTS = 50  # The maximum distance to insert another point into the spline
     SEARCH_KERNEL_SIZE = 7  # The size of the search kernel.
     MAX_DISTANCE_POINT_LINESEG_TO_SNAP = 10  # TODO: change threshold
+    IS_USER_ENERGY = True
 
     # Members
     image = None  # The source image.
@@ -24,7 +25,7 @@ class Snake:
     width = -1  # The image width.
     height = -1  # The image height.
     points = None  # The list of points of the snake.
-    n_starting_points = 50  # The number of starting points of the snake.
+    n_starting_points = 50  # The number of starting points of the snake.  # TODO: change #points
     snake_length = 0  # The length of the snake (euclidean distances).
     closed = True  # Indicates if the snake is closed or open.
     alpha = 0.5  # The weight of the uniformity energy.
@@ -34,6 +35,7 @@ class Snake:
     w_edge = 0.5  # The weight to the edge energy.
     w_term = 0.5  # The weight to the term energy.
     lines = None
+    EPSILON = 0.001
 
     #################################
     # Constructor
@@ -164,7 +166,6 @@ class Snake:
         un = Snake.dist(prev, p)
 
         dun = abs(un - avg_dist)
-
         return dun ** 2
 
     def f_curvature(self, p, prev, next):
@@ -203,7 +204,6 @@ class Snake:
         # (since it is a minimization problem)
         if p[0] < 0 or p[0] >= self.width or p[1] < 0 or p[1] >= self.height:
             return np.finfo(np.float64).max
-
         return self.binary[p[1]][p[0]]
 
     def f_edge(self, p):
@@ -216,7 +216,6 @@ class Snake:
         # (since it is a minimization problem)
         if p[0] < 0 or p[0] >= self.width or p[1] < 0 or p[1] >= self.height:
             return np.finfo(np.float64).max
-
         return -(self.gradientX[p[1]][p[0]] ** 2 + self.gradientY[p[1]][p[0]] ** 2)
 
     def f_term(self, p, prev, next):
@@ -237,9 +236,28 @@ class Snake:
         :return: The user configurable energy
         """
         # Penalize distance from each point to its nearest line
-        vdists = [pnt2line2d(p, line[0][:2], line[0][2:])[0]
-                  for line in self.lines]
-        return np.min(vdists) if np.min(vdists) < self.MAX_DISTANCE_POINT_LINESEG_TO_SNAP else 0
+        if not self.IS_USER_ENERGY:
+            return 0
+
+        # # Distance from every vertex to its nearest line segment (generally) as the energy
+        # vdists = [pnt2line2d(p, line[0][:2], line[0][2:])[0]
+        #           for line in self.lines]
+        # # TODO: how to set the penalty if the point is far away any line segment
+        # return np.min(vdists) if np.min(vdists) < self.MAX_DISTANCE_POINT_LINESEG_TO_SNAP else 10000
+
+        # # Straightness of three points
+        # ang_prev = (p[0] - prev[0]) / (p[1] - prev[1] + self.EPSILON)
+        # ang_next = (next[0] - p[0]) / (next[1] - p[1] + self.EPSILON)
+        # return abs(ang_next - ang_prev) * 10000
+
+        # For three points, constrain them collinear or shape as a right angle
+        len_prev = math.sqrt((p[0] - prev[0]) ** 2 + (p[1] - prev[1]) ** 2)
+        len_next = math.sqrt((next[0] - p[0]) ** 2 + (next[1] - p[1]) ** 2)
+        vec_prev = ((p[0] - prev[0]) / len_prev, (p[1] - prev[1]) / len_prev)
+        vec_next = ((next[0] - p[0]) / len_next, (next[1] - p[1]) / len_next)
+        e = np.dot(vec_prev, vec_next)
+        e = e**2 - e**3
+        return e * 100
 
     def remove_overlaping_points(self):
         """

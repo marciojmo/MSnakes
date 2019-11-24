@@ -13,7 +13,7 @@ class Snake:
     MAX_DISTANCE_BETWEEN_POINTS = 50  # The maximum distance to insert another point into the spline
     SEARCH_KERNEL_SIZE = 7  # The size of the search kernel.
     MAX_DISTANCE_POINT_LINESEG_TO_SNAP = 10  # TODO: change threshold
-    IS_USER_ENERGY = True
+    IS_USER_ENERGY = False
 
     # Members
     image = None  # The source image.
@@ -88,10 +88,10 @@ class Snake:
                            for x in range(0, n)
                            ]
 
-        # Generate lsd
-        lsd = LSD(self.image)
-        lsd.detect_lines()
-        self.lines = lsd.lines
+        # # Generate lsd
+        # lsd = LSD(self.image)
+        # lsd.detect_lines()
+        # self.lines = lsd.lines
 
     def visualize(self):
         """
@@ -257,14 +257,13 @@ class Snake:
         vec_next = ((next[0] - p[0]) / len_next, (next[1] - p[1]) / len_next)
         e = np.dot(vec_prev, vec_next)
         e = e**2 - e**3
-        return e * 100
+        return e
 
     def remove_overlaping_points(self):
         """
         Remove overlaping points from the curve based on
         the minimum distance between points (MIN_DIST_BETWEEN_POINTS)
         """
-
         snake_size = len(self.points)
 
         for i in range(0, snake_size):
@@ -294,6 +293,7 @@ class Snake:
         the maximum distance (MAX_DISTANCE_BETWEEN_POINTS)
         """
         snake_size = len(self.points)
+        print(0)
         for i in range(0, snake_size):
             prev = self.points[(i + snake_size - 1) % snake_size]
             curr = self.points[i]
@@ -312,7 +312,8 @@ class Snake:
                 new_point = np.array([math.floor(0.5 + x), math.floor(0.5 + y)])
 
                 self.points.insert(i + 1, new_point)
-                i -= 1
+                # i -= 1
+                snake_size += 1
 
     def step(self):
         """

@@ -65,5 +65,21 @@ vec_prev = ((p[0] - prev[0]) / len_prev, (p[1] - prev[1]) / len_prev)
 vec_next = ((next[0] - p[0]) / len_next, (next[1] - p[1]) / len_next)
 e = np.dot(vec_prev, vec_next)
 e = e**2 - e**3
-return e * 100
+
+# Weight of this energy term: 0.1
 ```
+
+## experiment_2.2
+
+```
+# For three points, constrain them collinear or shape as a right angle
+len_prev = math.sqrt((p[0] - prev[0]) ** 2 + (p[1] - prev[1]) ** 2)
+len_next = math.sqrt((next[0] - p[0]) ** 2 + (next[1] - p[1]) ** 2)
+vec_prev = ((p[0] - prev[0]) / len_prev, (p[1] - prev[1]) / len_prev)
+vec_next = ((next[0] - p[0]) / len_next, (next[1] - p[1]) / len_next)
+e = np.dot(vec_prev, vec_next)
+e = e**2 - e**3
+
+# Weight of this energy term: 0.3
+```
+

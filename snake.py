@@ -1,46 +1,43 @@
 import numpy as np
 import cv2
 import math
-from lsd import LSD
-from utils import pnt2line2d
 
 
 class Snake:
     """ A Snake class for active contour segmentation """
 
     # Constants
-    MIN_DISTANCE_BETWEEN_POINTS = 5  # The minimum distance between two points to consider them overlaped
-    MAX_DISTANCE_BETWEEN_POINTS = 50  # The maximum distance to insert another point into the spline
-    SEARCH_KERNEL_SIZE = 7  # The size of the search kernel.
-    MAX_DISTANCE_POINT_LINESEG_TO_SNAP = 10  # TODO: change threshold
-    IS_USER_ENERGY = False
+    MIN_DISTANCE_BETWEEN_POINTS = 5    # The minimum distance between two points to consider them overlaped
+    MAX_DISTANCE_BETWEEN_POINTS = 50    # The maximum distance to insert another point into the spline
+    SEARCH_KERNEL_SIZE = 7              # The size of the search kernel.
 
     # Members
-    image = None  # The source image.
-    gray = None  # The image in grayscale.
-    binary = None  # The image in binary (threshold method).
-    gradientX = None  # The gradient (sobel) of the image relative to x.
-    gradientY = None  # The gradient (sobel) of the image relative to y.
+    image = None        # The source image.
+    gray = None         # The image in grayscale.
+    binary = None       # The image in binary (threshold method).
+    gradientX = None    # The gradient (sobel) of the image relative to x.
+    gradientY = None    # The gradient (sobel) of the image relative to y.
     blur = None
-    width = -1  # The image width.
-    height = -1  # The image height.
-    points = None  # The list of points of the snake.
-    n_starting_points = 50  # The number of starting points of the snake.  # TODO: change #points
-    snake_length = 0  # The length of the snake (euclidean distances).
-    closed = True  # Indicates if the snake is closed or open.
-    alpha = 0.5  # The weight of the uniformity energy.
-    beta = 0.5  # The weight of the curvature energy.
-    delta = 0.1  # The weight of the user configured energy.
-    w_line = 0.5  # The weight to the line energy.
-    w_edge = 0.5  # The weight to the edge energy.
-    w_term = 0.5  # The weight to the term energy.
-    lines = None
-    EPSILON = 0.001
+    width = -1          # The image width.
+    height = -1         # The image height.
+    points = None       # The list of points of the snake.
+    n_starting_points = 50       # The number of starting points of the snake.
+    snake_length = 0    # The length of the snake (euclidean distances).
+    closed = True       # Indicates if the snake is closed or open.
+    alpha = 0.5         # The weight of the uniformity energy.
+    beta = 0.5          # The weight of the curvature energy.
+    delta = 0.1         # The weight of the user configured energy.
+    w_line = 0.5        # The weight to the line energy.
+    w_edge = 0.5        # The weight to the edge energy.
+    w_term = 0.5        # The weight to the term energy.
+
+
+
 
     #################################
     # Constructor
     #################################
-    def __init__(self, image=None, closed=True):
+    def __init__( self, image = None, closed = True ):
         """
         Object constructor
         :param image: The image to run snake on
@@ -55,18 +52,19 @@ class Snake:
         self.height = image.shape[0]
 
         # Image variations used by the snake
-        self.gray = cv2.cvtColor(self.image, cv2.COLOR_RGB2GRAY)
-        self.binary = cv2.adaptiveThreshold(self.gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-        self.gradientX = cv2.Sobel(self.gray, cv2.CV_64F, 1, 0, ksize=5)
-        self.gradientY = cv2.Sobel(self.gray, cv2.CV_64F, 0, 1, ksize=5)
+        self.gray = cv2.cvtColor( self.image, cv2.COLOR_RGB2GRAY )
+        self.binary = cv2.adaptiveThreshold( self.gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2 )
+        self.gradientX = cv2.Sobel( self.gray, cv2.CV_64F, 1, 0, ksize=5 )
+        self.gradientY = cv2.Sobel( self.gray, cv2.CV_64F, 0, 1, ksize=5 )
 
         # Set the snake behaviour (closed or open)
         self.closed = closed
 
         # Gets the half width and height of the image
         # to use as center of the generated snake circle
-        half_width = math.floor(self.width / 2)
-        half_height = math.floor(self.height / 2)
+        half_width = math.floor( self.width / 2 )
+        half_height = math.floor( self.height / 2 )
+
 
         ####################################
         # Generating the starting points   #
@@ -76,24 +74,21 @@ class Snake:
         if self.closed:
             n = self.n_starting_points
             radius = half_width if half_width < half_height else half_height
-            self.points = [np.array([
-                half_width + math.floor(math.cos(2 * math.pi / n * x) * radius),
-                half_height + math.floor(math.sin(2 * math.pi / n * x) * radius)])
-                for x in range(0, n)
+            self.points = [ np.array([
+                half_width + math.floor( math.cos( 2 * math.pi / n * x ) * radius ),
+                half_height + math.floor( math.sin( 2 * math.pi / n * x ) * radius ) ])
+                for x in range( 0, n )
             ]
-        else:  # If it is an open snake, the initial guess will be an horizontal line
+        else:   # If it is an open snake, the initial guess will be an horizontal line
             n = self.n_starting_points
-            factor = math.floor(half_width / (self.n_starting_points - 1))
-            self.points = [np.array([math.floor(half_width / 2) + x * factor, half_height])
-                           for x in range(0, n)
-                           ]
+            factor = math.floor( half_width / (self.n_starting_points-1) )
+            self.points = [ np.array([ math.floor( half_width / 2 ) + x * factor, half_height ])
+                for x in range( 0, n )
+            ]
 
-        # # Generate lsd
-        # lsd = LSD(self.image)
-        # lsd.detect_lines()
-        # self.lines = lsd.lines
 
-    def visualize(self):
+
+    def visualize( self ):
         """
         Draws the current state of the snake over the image.
         :return: An image with the snake drawed over it
@@ -101,26 +96,27 @@ class Snake:
         img = self.image.copy()
 
         # Drawing lines between points
-        point_color = (0, 255, 255)  # BGR RED
-        line_color = (128, 0, 0)  # BGR half blue
-        thickness = 2  # Thickness of the lines and circles
+        point_color = ( 0, 255, 255 )     # BGR RED
+        line_color = ( 128, 0, 0 )      # BGR half blue
+        thickness = 2                   # Thickness of the lines and circles
 
         # Draw a line between the current and the next point
-        n_points = len(self.points)
-        for i in range(0, n_points - 1):
-            cv2.line(img, tuple(self.points[i]), tuple(self.points[i + 1]), line_color, thickness)
+        n_points = len( self.points )
+        for i in range( 0, n_points - 1 ):
+            cv2.line( img, tuple( self.points[ i ] ), tuple( self.points[ i + 1 ] ), line_color, thickness )
 
         # 0 -> N (Closes the snake)
         if self.closed:
-            cv2.line(img, tuple(self.points[0]), tuple(self.points[n_points - 1]), line_color, thickness)
+            cv2.line(img, tuple( self.points[ 0 ] ), tuple( self.points[ n_points-1 ] ), line_color, thickness )
 
         # Drawing circles over points
-        [cv2.circle(img, tuple(x), thickness, point_color, -1) for x in self.points]
+        [ cv2.circle( img, tuple( x ), thickness, point_color, -1) for x in self.points ]
 
         return img
 
-    @staticmethod
-    def dist(a, b):
+
+
+    def dist( a, b ):
         """
         Calculates the euclidean distance between two points
         :param a: The first point
@@ -128,18 +124,21 @@ class Snake:
         :return: The euclidian distance between the two points
         """
 
-        return np.sqrt(np.sum((a - b) ** 2))
+        return np.sqrt( np.sum( ( a - b ) ** 2 ) )
 
-    @staticmethod
-    def normalize(kernel):
+
+
+    def normalize( kernel ):
         """
         Normalizes a kernel
         :param kernel: The kernel full of numbers to normalize
         :return: A copy of the kernel normalized
         """
 
-        abs_sum = np.sum([abs(x) for x in kernel])
+        abs_sum = np.sum( [ abs( x ) for x in kernel ] )
         return kernel / abs_sum if abs_sum != 0 else kernel
+
+
 
     def get_length(self):
         """
@@ -151,9 +150,11 @@ class Snake:
         if not self.closed:
             n_points -= 1
 
-        return np.sum([Snake.dist(self.points[i], self.points[(i + 1) % n_points]) for i in range(0, n_points)])
+        return np.sum( [ Snake.dist( self.points[i], self.points[ (i+1)%n_points  ] ) for i in range( 0, n_points ) ] )
 
-    def f_uniformity(self, p, prev):
+
+
+    def f_uniformity( self, p, prev ):
         """
         The uniformity energy. (The tendency to move the curve towards a straight line)
         :param p: The point being analysed
@@ -161,14 +162,17 @@ class Snake:
         :return: The uniformity energy for the given points
         """
         # The average distance between points in the snake
-        avg_dist = self.snake_length / len(self.points)
+        avg_dist = self.snake_length / len( self.points )
         # The distance between the previous and the point being analysed
-        un = Snake.dist(prev, p)
+        un = Snake.dist( prev, p )
 
-        dun = abs(un - avg_dist)
-        return dun ** 2
+        dun = abs( un - avg_dist )
 
-    def f_curvature(self, p, prev, next):
+        return dun**2
+
+
+
+    def f_curvature( self, p, prev, next ):
         """
         The Curvature energy
         :param p: The point being analysed
@@ -178,23 +182,25 @@ class Snake:
         """
         ux = p[0] - prev[0]
         uy = p[1] - prev[1]
-        un = math.sqrt(ux ** 2 + uy ** 2)
+        un = math.sqrt( ux**2 + uy**2 )
 
         vx = p[0] - next[0]
         vy = p[1] - next[1]
-        vn = math.sqrt(vx ** 2 + vy ** 2)
+        vn = math.sqrt( vx**2 + vy**2 )
 
         if un == 0 or vn == 0:
             return 0
 
-        cx = float(vx + ux) / (un * vn)
-        cy = float(vy + uy) / (un * vn)
+        cx = float( vx + ux )  / ( un * vn )
+        cy = float( vy + uy ) / ( un * vn )
 
-        cn = cx ** 2 + cy ** 2
+        cn = cx**2 + cy**2
 
         return cn
 
-    def f_line(self, p):
+
+
+    def f_line( self, p ):
         """
         The line energy (The tendency to move the curve towards dark / lighter areas)
         :param p: The point being analysed
@@ -204,9 +210,12 @@ class Snake:
         # (since it is a minimization problem)
         if p[0] < 0 or p[0] >= self.width or p[1] < 0 or p[1] >= self.height:
             return np.finfo(np.float64).max
-        return self.binary[p[1]][p[0]]
 
-    def f_edge(self, p):
+        return self.binary[ p[1] ][ p[0] ]
+
+
+
+    def f_edge( self, p ):
         """
         The edge energy (The tendency to move the curve towards edges). Using the sobel gradient.
         :param p: The point being analysed
@@ -216,9 +225,12 @@ class Snake:
         # (since it is a minimization problem)
         if p[0] < 0 or p[0] >= self.width or p[1] < 0 or p[1] >= self.height:
             return np.finfo(np.float64).max
-        return -(self.gradientX[p[1]][p[0]] ** 2 + self.gradientY[p[1]][p[0]] ** 2)
 
-    def f_term(self, p, prev, next):
+        return -( self.gradientX[ p[1] ][ p[0] ]**2 + self.gradientY[ p[1] ][ p[0] ]**2  )
+
+
+
+    def f_term( self, p, prev, next ):
         """
         Not implemented. The tendency to move the snake towards corners and terminations.
         :param p: The point being analysed
@@ -226,7 +238,9 @@ class Snake:
         """
         return 0
 
-    def f_conf(self, p, prev, next):
+
+
+    def f_conf( self, p , prev, next ):
         """
         User configurable energy. The tendency to do whatever you want.
         In this case, I'm adding a perturbation tendency on each point.
@@ -235,72 +249,57 @@ class Snake:
         :param next: The next point on the snake
         :return: The user configurable energy
         """
-        # Penalize distance from each point to its nearest line
-        if not self.IS_USER_ENERGY:
-            return 0
+        import random
+        return random.random()
 
-        # # Distance from every vertex to its nearest line segment (generally) as the energy
-        # vdists = [pnt2line2d(p, line[0][:2], line[0][2:])[0]
-        #           for line in self.lines]
-        # # TODO: how to set the penalty if the point is far away any line segment
-        # return np.min(vdists) if np.min(vdists) < self.MAX_DISTANCE_POINT_LINESEG_TO_SNAP else 10000
 
-        # # Straightness of three points
-        # ang_prev = (p[0] - prev[0]) / (p[1] - prev[1] + self.EPSILON)
-        # ang_next = (next[0] - p[0]) / (next[1] - p[1] + self.EPSILON)
-        # return abs(ang_next - ang_prev) * 10000
 
-        # For three points, constrain them collinear or shape as a right angle
-        len_prev = math.sqrt((p[0] - prev[0]) ** 2 + (p[1] - prev[1]) ** 2)
-        len_next = math.sqrt((next[0] - p[0]) ** 2 + (next[1] - p[1]) ** 2)
-        vec_prev = ((p[0] - prev[0]) / len_prev, (p[1] - prev[1]) / len_prev)
-        vec_next = ((next[0] - p[0]) / len_next, (next[1] - p[1]) / len_next)
-        e = np.dot(vec_prev, vec_next)
-        e = e**2 - e**3
-        return e
-
-    def remove_overlaping_points(self):
+    def remove_overlaping_points( self ):
         """
         Remove overlaping points from the curve based on
         the minimum distance between points (MIN_DIST_BETWEEN_POINTS)
         """
-        snake_size = len(self.points)
 
-        for i in range(0, snake_size):
-            for j in range(snake_size - 1, i + 1, -1):
+        snake_size = len( self.points )
+
+        for i in range( 0, snake_size ):
+            for j in range( snake_size-1, i+1, -1 ):
                 if i == j:
                     continue
 
-                curr = self.points[i]
-                end = self.points[j]
+                curr = self.points[ i ]
+                end = self.points[ j ]
 
-                dist = Snake.dist(curr, end)
+                dist = Snake.dist( curr, end )
 
                 if dist < self.MIN_DISTANCE_BETWEEN_POINTS:
-                    remove_indexes = range(i + 1, j) if (i != 0 and j != snake_size - 1) else [j]
-                    remove_size = len(remove_indexes)
+                    remove_indexes = range( i+1, j ) if (i!=0 and j!=snake_size-1) else [j]
+                    remove_size = len( remove_indexes )
                     non_remove_size = snake_size - remove_size
                     if non_remove_size > remove_size:
-                        self.points = [p for k, p in enumerate(self.points) if k not in remove_indexes]
+                        self.points = [ p for k,p in enumerate( self.points ) if k not in remove_indexes ]
                     else:
-                        self.points = [p for k, p in enumerate(self.points) if k in remove_indexes]
-                    snake_size = len(self.points)
+                        self.points = [ p for k,p in enumerate( self.points ) if k in remove_indexes ]
+                    snake_size = len( self.points )
                     break
 
-    def add_missing_points(self):
+
+
+
+
+    def add_missing_points( self ):
         """
         Add points to the spline if the distance between two points is bigger than
         the maximum distance (MAX_DISTANCE_BETWEEN_POINTS)
         """
-        snake_size = len(self.points)
-        print(0)
-        for i in range(0, snake_size):
-            prev = self.points[(i + snake_size - 1) % snake_size]
-            curr = self.points[i]
-            next = self.points[(i + 1) % snake_size]
-            next2 = self.points[(i + 2) % snake_size]
+        snake_size = len( self.points )
+        for i in range( 0, snake_size ):
+            prev = self.points[ ( i + snake_size-1 ) % snake_size ]
+            curr = self.points[ i ]
+            next = self.points[ (i+1) % snake_size ]
+            next2 = self.points[ (i+2) % snake_size ]
 
-            if Snake.dist(curr, next) > self.MAX_DISTANCE_BETWEEN_POINTS:
+            if Snake.dist( curr, next ) > self.MAX_DISTANCE_BETWEEN_POINTS:
                 # Pre-computed uniform cubig b-spline for t = 0.5
                 c0 = 0.125 / 6.0
                 c1 = 2.875 / 6.0
@@ -309,13 +308,15 @@ class Snake:
                 x = prev[0] * c3 + curr[0] * c2 + next[0] * c1 + next2[0] * c0
                 y = prev[1] * c3 + curr[1] * c2 + next[1] * c1 + next2[1] * c0
 
-                new_point = np.array([math.floor(0.5 + x), math.floor(0.5 + y)])
+                new_point = np.array( [ math.floor( 0.5 + x ), math.floor( 0.5 + y ) ] )
 
-                self.points.insert(i + 1, new_point)
-                # i -= 1
-                snake_size += 1
+                self.points.insert( i+1, new_point )
+                i -= 1
 
-    def step(self):
+
+
+
+    def step( self ):
         """
         Perform a step in the active contour algorithm
         """
@@ -325,40 +326,45 @@ class Snake:
         self.snake_length = self.get_length()
         new_snake = self.points.copy()
 
+
         # Kernels (They store the energy for each point being search along the search kernel)
-        search_kernel_size = (self.SEARCH_KERNEL_SIZE, self.SEARCH_KERNEL_SIZE)
-        hks = math.floor(self.SEARCH_KERNEL_SIZE / 2)  # half-kernel size
-        e_uniformity = np.zeros(search_kernel_size)
-        e_curvature = np.zeros(search_kernel_size)
-        e_line = np.zeros(search_kernel_size)
-        e_edge = np.zeros(search_kernel_size)
-        e_term = np.zeros(search_kernel_size)
-        e_conf = np.zeros(search_kernel_size)
+        search_kernel_size = ( self.SEARCH_KERNEL_SIZE, self.SEARCH_KERNEL_SIZE )
+        hks = math.floor( self.SEARCH_KERNEL_SIZE / 2 ) # half-kernel size
+        e_uniformity = np.zeros( search_kernel_size )
+        e_curvature = np.zeros( search_kernel_size )
+        e_line = np.zeros( search_kernel_size )
+        e_edge = np.zeros( search_kernel_size )
+        e_term = np.zeros( search_kernel_size )
+        e_conf = np.zeros( search_kernel_size )
 
-        for i in range(0, len(self.points)):
-            curr = self.points[i]
-            prev = self.points[(i + len(self.points) - 1) % len(self.points)]
-            next = self.points[(i + 1) % len(self.points)]
+        for i in range( 0, len( self.points ) ):
+            curr = self.points[ i ]
+            prev = self.points[ ( i + len( self.points )-1 ) % len( self.points ) ]
+            next = self.points[ ( i + 1 ) % len( self.points ) ]
 
-            for dx in range(-hks, hks):
-                for dy in range(-hks, hks):
-                    p = np.array([curr[0] + dx, curr[1] + dy])
+
+            for dx in range( -hks, hks ):
+                for dy in range( -hks, hks ):
+                    p = np.array( [curr[0] + dx, curr[1] + dy] )
 
                     # Calculates the energy functions on p
-                    e_uniformity[dx + hks][dy + hks] = self.f_uniformity(p, prev)
-                    e_curvature[dx + hks][dy + hks] = self.f_curvature(p, prev, next)
-                    e_line[dx + hks][dy + hks] = self.f_line(p)
-                    e_edge[dx + hks][dy + hks] = self.f_edge(p)
-                    e_term[dx + hks][dy + hks] = self.f_term(p, prev, next)
-                    e_conf[dx + hks][dy + hks] = self.f_conf(p, prev, next)
+                    e_uniformity[ dx + hks ][ dy + hks ] = self.f_uniformity( p, prev )
+                    e_curvature[ dx + hks ][ dy + hks ] = self.f_curvature( p, prev, next )
+                    e_line[ dx + hks ][ dy + hks ] = self.f_line( p )
+                    e_edge[ dx + hks ][ dy + hks ] = self.f_edge( p )
+                    e_term[ dx + hks ][ dy + hks ] = self.f_term( p, prev, next )
+                    e_conf[ dx + hks ][ dy + hks ] = self.f_conf( p, prev, next )
+
 
             # Normalizes energies
-            e_uniformity = Snake.normalize(e_uniformity)
-            e_curvature = Snake.normalize(e_curvature)
-            e_line = Snake.normalize(e_line)
-            e_edge = Snake.normalize(e_edge)
-            e_term = Snake.normalize(e_term)
-            e_conf = Snake.normalize(e_conf)
+            e_uniformity = Snake.normalize( e_uniformity )
+            e_curvature = Snake.normalize( e_curvature )
+            e_line = Snake.normalize( e_line )
+            e_edge = Snake.normalize( e_edge )
+            e_term = Snake.normalize( e_term )
+            e_conf = Snake.normalize( e_conf )
+
+
 
             # The sum of all energies for each point
 
@@ -371,25 +377,25 @@ class Snake:
 
             # Searches for the point that minimizes the sum of energies e_sum
             emin = np.finfo(np.float64).max
-            x, y = 0, 0
-            for dx in range(-hks, hks):
-                for dy in range(-hks, hks):
-                    if e_sum[dx + hks][dy + hks] < emin:
-                        emin = e_sum[dx + hks][dy + hks]
+            x,y = 0,0
+            for dx in range( -hks, hks ):
+                for dy in range( -hks, hks ):
+                    if e_sum[ dx + hks ][ dy + hks ] < emin:
+                        emin = e_sum[ dx + hks ][ dy + hks ]
                         x = curr[0] + dx
                         y = curr[1] + dy
 
             # Boundary check
             x = 1 if x < 1 else x
-            x = self.width - 2 if x >= self.width - 1 else x
+            x = self.width-2 if x >= self.width-1 else x
             y = 1 if y < 1 else y
-            y = self.height - 2 if y >= self.height - 1 else y
+            y = self.height-2 if y >= self.height-1 else y
 
             # Check for changes
             if curr[0] != x or curr[1] != y:
                 changed = True
 
-            new_snake[i] = np.array([x, y])
+            new_snake[i] = np.array( [ x, y ] )
 
         self.points = new_snake
 
@@ -400,42 +406,54 @@ class Snake:
 
         return changed
 
-    def set_alpha(self, x):
+
+
+    def set_alpha( self, x ):
         """
         Utility function (used by cvCreateTrackbar) to set the value of alpha.
         :param x: The new value of alpha (scaled by 100)
         """
         self.alpha = x / 100
 
-    def set_beta(self, x):
+
+
+    def set_beta( self, x ):
         """
         Utility function (used by cvCreateTrackbar) to set the value of beta.
         :param x: The new value of beta (scaled by 100)
         """
         self.beta = x / 100
 
-    def set_delta(self, x):
+
+
+    def set_delta( self, x ):
         """
         Utility function (used by cvCreateTrackbar) to set the value of delta.
         :param x: The new value of delta (scaled by 100)
         """
         self.delta = x / 100
 
-    def set_w_line(self, x):
+
+
+    def set_w_line( self, x ):
         """
         Utility function (used by cvCreateTrackbar) to set the value of w_line.
         :param x: The new value of w_line (scaled by 100)
         """
         self.w_line = x / 100
 
-    def set_w_edge(self, x):
+
+
+    def set_w_edge( self, x ):
         """
         Utility function (used by cvCreateTrackbar) to set the value of w_edge.
         :param x: The new value of w_edge (scaled by 100)
         """
         self.w_edge = x / 100
 
-    def set_w_term(self, x):
+
+
+    def set_w_term( self, x ):
         """
         Utility function (used by cvCreateTrackbar) to set the value of w_term.
         :param x: The new value of w_term (scaled by 100)

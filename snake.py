@@ -311,7 +311,7 @@ class Snake:
                 new_point = np.array( [ math.floor( 0.5 + x ), math.floor( 0.5 + y ) ] )
 
                 self.points.insert( i+1, new_point )
-                i -= 1
+                snake_size += 1
 
 
 
